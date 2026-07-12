@@ -113,10 +113,6 @@ function Modal_change_network(props) {
         };
     }, [currentChainId, hasEthereumProvider, props.cont]);
 
-    if (!isVisible) {
-        return <></>;
-    }
-
     const copyNetworkField = async (label, value) => {
         try {
             if (navigator?.clipboard?.writeText) {
@@ -189,6 +185,10 @@ function Modal_change_network(props) {
             return () => clearTimeout(timer);
         }
     }, [isVisible, hasEthereumProvider, autoAttempted, props.cont]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (!isVisible) {
+        return <></>;
+    }
 
     return (
         <div className="network-modal-overlay">

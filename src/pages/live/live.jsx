@@ -34,6 +34,7 @@ const REACTION_OPTIONS = [
     { key: "slow", label: "ゆっくり" },
     { key: "fast", label: "速い" },
 ];
+const REACTION_KEYS = REACTION_OPTIONS.map((option) => option.key);
 const REACTION_TIMING_GUIDE = [
     "講義中いつでもOK（ボタンを押すだけ!）",
     "新しい概念や用語の説明の後",

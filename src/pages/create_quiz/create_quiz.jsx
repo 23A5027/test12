@@ -1,3 +1,4 @@
+/* global BigInt */
 import { Contracts_MetaMask } from "../../contract/contracts";
 import Form from "react-bootstrap/Form";
 import { useState, useEffect, useMemo } from "react";

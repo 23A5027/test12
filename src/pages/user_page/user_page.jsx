@@ -7,12 +7,15 @@ import History_list from "./component/history_list";
 import User_card from "./component/user_card";
 import { useRef } from "react";
 import { buildBadgeSet, getCourseEnhancementSnapshot } from "../../utils/courseEnhancements";
-import { bootstrap_teacher_addresses } from "../../contract/config";
+import { bootstrap_teacher_addresses, token_address, ttt_token_address } from "../../contract/config";
 import { MAX_TFT_PER_LECTURE, MAX_TFT_TOTAL, QUIZ_RATE_OPTIONS, TOTAL_LECTURE_COUNT, TFT_PER_POINT } from "../../utils/quizRewardRate";
 import { buildAnswerQuizPath, buildAnswerQuizState, rememberQuizSource } from "../../utils/quizLinks";
 import { syncRewardPayoutLedgerFromServer } from "../../utils/rewardPayoutLedger";
 
-const BALANCE_CACHE_KEY = "user_page_balance_cache_v1";
+const BALANCE_CACHE_SCOPE = [token_address, ttt_token_address]
+    .map((value) => String(value || "").toLowerCase())
+    .join("_");
+const BALANCE_CACHE_KEY = `user_page_balance_cache_v1_${BALANCE_CACHE_SCOPE}`;
 
 function normalizeAddress(address) {
     return String(address || "").toLowerCase();

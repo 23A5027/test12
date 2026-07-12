@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 import { legacy_quiz_addresses, quiz_address } from "../../contract/config";
 import "./list_quiz_top.css";
 
-const QUIZ_LIST_PAGE_CACHE_KEY = "web3_quiz_list_page_cache_v1";
+const QUIZ_LIST_PAGE_CACHE_KEY = `web3_quiz_list_page_cache_v1_${normalizeQuizAddress(quiz_address)}`;
 
 function readQuizListPageCache() {
     if (typeof localStorage === "undefined") return null;

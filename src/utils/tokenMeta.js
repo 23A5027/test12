@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { token_address } from "../contract/config";
 
-const TOKEN_SYMBOL_KEY = "web3_quiz_token_symbol";
+const TOKEN_SYMBOL_KEY = `web3_quiz_token_symbol_${String(token_address || "").toLowerCase()}`;
 const DEFAULT_SYMBOL = "TOKEN";
 
 function getStoredTokenSymbol() {

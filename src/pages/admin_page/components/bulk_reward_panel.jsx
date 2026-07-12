@@ -1,3 +1,4 @@
+/* global BigInt */
 import React, { useEffect, useMemo, useState } from "react";
 import { legacy_quiz_addresses, quiz_address } from "../../../contract/config";
 import { getRewardPayoutEntries, persistRewardPayoutEntriesToServer, syncRewardPayoutLedgerFromServer } from "../../../utils/rewardPayoutLedger";

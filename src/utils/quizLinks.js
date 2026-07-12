@@ -1,8 +1,7 @@
 import { quiz_address } from "../contract/config";
+import { toGlobalId } from "./quizGlobalId";
 
 const QUIZ_SOURCE_STORAGE_KEY = "web3_quiz_source_map_v1";
-
-import { toGlobalId } from "./quizGlobalId";
 
 function normalizeAddress(value = "") {
     return String(value || "").trim().toLowerCase();

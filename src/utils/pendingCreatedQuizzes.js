@@ -1,3 +1,4 @@
+/* global BigInt */
 import { quiz_address } from "../contract/config";
 
 const STORAGE_KEY = "web3_pending_created_quizzes_v1";

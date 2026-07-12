@@ -130,10 +130,17 @@ const SCORE_BASELINE_TFT_MAP = Object.fromEntries(
     ])
 );
 
-const SCORE_CACHE_KEY = "web3_quiz_reward_cache_v1";
-const STUDENT_LIST_CACHE_KEY = "web3_quiz_student_list_cache_v1";
-const RESULTS_CACHE_KEY = "web3_quiz_results_cache_v1";
-const QUIZ_INVENTORY_PERSIST_KEY = "web3_quiz_inventory_cache_v1";
+const CONTRACT_CACHE_SCOPE = [
+    amoy.id,
+    class_room_address,
+    quiz_address,
+    token_address,
+    ttt_token_address,
+].map((value) => String(value || "").toLowerCase()).join("_");
+const SCORE_CACHE_KEY = `web3_quiz_reward_cache_v1_${CONTRACT_CACHE_SCOPE}`;
+const STUDENT_LIST_CACHE_KEY = `web3_quiz_student_list_cache_v1_${CONTRACT_CACHE_SCOPE}`;
+const RESULTS_CACHE_KEY = `web3_quiz_results_cache_v1_${CONTRACT_CACHE_SCOPE}`;
+const QUIZ_INVENTORY_PERSIST_KEY = `web3_quiz_inventory_cache_v1_${CONTRACT_CACHE_SCOPE}`;
 const QUIZ_SIMPLE_CACHE_KEY = "web3_quiz_simple_cache_v1";
 const LAST_KNOWN_WALLET_ADDRESS_KEY = "web3_last_known_wallet_address_v1";
 const STUDENT_LIST_CACHE_TTL_MS = 3 * 60 * 1000;

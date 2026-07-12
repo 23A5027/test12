@@ -77,6 +77,17 @@ function yieldToUi() {
     });
 }
 
+async function runChunked(items, chunkSize, mapper) {
+    const safeChunkSize = Math.max(1, Number(chunkSize || 1));
+    const results = [];
+    for (let index = 0; index < items.length; index += safeChunkSize) {
+        const chunk = items.slice(index, index + safeChunkSize);
+        const chunkResults = await Promise.all(chunk.map((item, chunkIndex) => mapper(item, index + chunkIndex)));
+        results.push(...chunkResults);
+    }
+    return results;
+}
+
 function buildAnswerLogKey(address = "", quizId = "", sourceAddress = "") {
     return `${normalizeAddress(address)}:${String(sourceAddress || "").toLowerCase()}:${String(quizId)}`;
 }

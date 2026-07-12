@@ -1,6 +1,10 @@
 import { fetchLiveSignalJson } from "./liveSignalApi";
+import { token_address, ttt_token_address } from "../contract/config";
 
-const STORAGE_KEY = "web3_quiz_token_grant_ledger_v1";
+const TOKEN_GRANT_SCOPE = [token_address, ttt_token_address]
+    .map((value) => String(value || "").toLowerCase())
+    .join("_");
+const STORAGE_KEY = `web3_quiz_token_grant_ledger_v1_${TOKEN_GRANT_SCOPE}`;
 const PENDING_GRANT_TTL_MS = 10 * 60 * 1000;
 
 const TOKEN_GRANT_KEYS = {

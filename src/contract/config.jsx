@@ -18,8 +18,8 @@ const rpc = rpc_urls[0]; // default RPC endpoint
 //const quiz_address = "0xAb3Ec4a039fb6aBb66Cf00460d27839a9C196B94";//応用数学一回目
 //const quiz_address = "0x5d12efccbd81c60c80e5e2caffa480f2cf80a813"//test10
 
-const class_room_address = "0xa9AA6D24ecF43fEd6203680866f78B9A4798A8e0";
-const quiz_address = "0xeb196c161EFA30939f78170694bb908E17fd1479";
+const class_room_address = "0xaF67a72181E841960333EA309F787541e12f8799";
+const quiz_address = "0xa87a2947c6a19460a61D43f3D43Ea7e58aD7220B";
 const legacy_quiz_addresses = [
     "0x55B3977C7B7b913eaf175A7364c8375732d22241",
     "0xEbBD4E3276bcb847838E18DDA7585Ac8925a5eA6",
@@ -32,6 +32,7 @@ const legacy_quiz_addresses = [
 // 2. move the previous quiz_address into legacy_quiz_addresses
 // 3. append the new contract address to routed_quiz_addresses
 const routed_quiz_addresses = [
+    "0xa87a2947c6a19460a61D43f3D43Ea7e58aD7220B",
     "0xeb196c161EFA30939f78170694bb908E17fd1479",
     "0x55B3977C7B7b913eaf175A7364c8375732d22241",
     "0xEbBD4E3276bcb847838E18DDA7585Ac8925a5eA6",
@@ -40,10 +41,10 @@ const routed_quiz_addresses = [
 ];
 // Backward-compatible alias for previously shared c-<id> URLs.
 const legacy_current_route_address = "0x55B3977C7B7b913eaf175A7364c8375732d22241";
-const token_address = "0x021e416bb6bfA1e76Aa4E280828b1d55F2d5f2F0";
-const ttt_token_address = "0x22b6457aC35b2A839EE6eb47c91f0941E1b21476";
+const token_address = "0x3A2ADb83eAcDF03B512D683F7De186781f29c8B4";
+const ttt_token_address = "0x38c881Fb9F6172B4b283903bAcDd503f34bD414D";
 const bootstrap_teacher_addresses = [
-    "0xd5670D7B88411d03741680451C2ea630B68C6944",
+    "0x65Fb0D4a40181a4ab3Cd752F40aF16033873aEAf",
 ];
 
 export {

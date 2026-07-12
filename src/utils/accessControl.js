@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { WALLET_PROVIDER_CHANGED_EVENT } from "../contract/contractClients";
-import { bootstrap_teacher_addresses } from "../contract/config";
+import { bootstrap_teacher_addresses, class_room_address, quiz_address } from "../contract/config";
 
-const ACCESS_STATE_CACHE_KEY = "web3_access_state_cache_v1";
+const ACCESS_STATE_CACHE_SCOPE = [class_room_address, quiz_address]
+    .map((value) => String(value || "").toLowerCase())
+    .join("_");
+const ACCESS_STATE_CACHE_KEY = `web3_access_state_cache_v1_${ACCESS_STATE_CACHE_SCOPE}`;
 const ACCESS_STATE_CACHE_TTL_MS = 15 * 60 * 1000;
 
 function createDefaultAccessState() {
