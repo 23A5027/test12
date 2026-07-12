@@ -815,13 +815,13 @@ class Contracts_MetaMask {
     }
 
     getAccessControlAddresses() {
-        return [class_room_address, quiz_address, ...(legacy_quiz_addresses || [])].filter(
+        return [class_room_address].filter(
             (address, index, list) => Boolean(address) && list.indexOf(address) === index
         );
     }
 
     getAccessControlAddress() {
-        return this.getAccessControlAddresses()[0] || quiz_address;
+        return this.getAccessControlAddresses()[0] || class_room_address;
     }
 
     normalizeQuizAddress(address = "") {
