@@ -40,6 +40,22 @@ function normalizeReadAccount(account) {
     return account ? checksumAddress(String(account).trim()) : undefined;
 }
 
+function normalizeAddressValue(address = "") {
+    return String(address || "").trim().toLowerCase();
+}
+
+function filterQuizInventoryEntries(entries = [], allowedAddresses = []) {
+    const allowedSet = new Set((allowedAddresses || []).map(normalizeAddressValue).filter(Boolean));
+    if (allowedSet.size === 0) return [];
+    return (Array.isArray(entries) ? entries : [])
+        .map((entry) => ({
+            id: Number(entry?.id),
+            address: String(entry?.address || quiz_address),
+        }))
+        .filter((entry) => Number.isFinite(entry.id) && entry.id >= 0)
+        .filter((entry) => allowedSet.has(normalizeAddressValue(entry.address)));
+}
+
 function getTokenHistoryExplanation(entry) {
     return String(entry?._explanation || entry?.[5] || "");
 }
@@ -137,11 +153,11 @@ const CONTRACT_CACHE_SCOPE = [
     token_address,
     ttt_token_address,
 ].map((value) => String(value || "").toLowerCase()).join("_");
-const SCORE_CACHE_KEY = `web3_quiz_reward_cache_v1_${CONTRACT_CACHE_SCOPE}`;
+const SCORE_CACHE_KEY = `web3_quiz_reward_cache_v2_${CONTRACT_CACHE_SCOPE}`;
 const STUDENT_LIST_CACHE_KEY = `web3_quiz_student_list_cache_v1_${CONTRACT_CACHE_SCOPE}`;
-const RESULTS_CACHE_KEY = `web3_quiz_results_cache_v1_${CONTRACT_CACHE_SCOPE}`;
-const QUIZ_INVENTORY_PERSIST_KEY = `web3_quiz_inventory_cache_v1_${CONTRACT_CACHE_SCOPE}`;
-const QUIZ_SIMPLE_CACHE_KEY = "web3_quiz_simple_cache_v1";
+const RESULTS_CACHE_KEY = `web3_quiz_results_cache_v2_${CONTRACT_CACHE_SCOPE}`;
+const QUIZ_INVENTORY_PERSIST_KEY = `web3_quiz_inventory_cache_v2_${CONTRACT_CACHE_SCOPE}`;
+const QUIZ_SIMPLE_CACHE_KEY = `web3_quiz_simple_cache_v2_${normalizeAddressValue(quiz_address)}`;
 const LAST_KNOWN_WALLET_ADDRESS_KEY = "web3_last_known_wallet_address_v1";
 const STUDENT_LIST_CACHE_TTL_MS = 3 * 60 * 1000;
 const RESULTS_CACHE_TTL_MS = 60 * 1000;
@@ -844,12 +860,15 @@ class Contracts_MetaMask {
 
     async getQuizInventory(forceRefresh = false) {
         const now = Date.now();
-        if (!forceRefresh && Array.isArray(quizInventoryCacheMemory) && now - quizInventoryCacheFetchedAt < QUIZ_INVENTORY_CACHE_TTL_MS) {
-            return quizInventoryCacheMemory;
+        const addresses = this.getQuizReadAddresses();
+        const memoryEntries = filterQuizInventoryEntries(quizInventoryCacheMemory, addresses);
+        if (!forceRefresh && memoryEntries.length > 0 && now - quizInventoryCacheFetchedAt < QUIZ_INVENTORY_CACHE_TTL_MS) {
+            quizInventoryCacheMemory = memoryEntries;
+            return memoryEntries;
         }
 
         const persistedCache = readTimedCache(QUIZ_INVENTORY_PERSIST_KEY);
-        const persistedEntries = Array.isArray(persistedCache?.value) ? persistedCache.value : [];
+        const persistedEntries = filterQuizInventoryEntries(persistedCache?.value, addresses);
         if (
             !forceRefresh
             && persistedEntries.length > 0
@@ -864,7 +883,6 @@ class Contracts_MetaMask {
             return quizInventoryCachePromise;
         }
 
-        const addresses = this.getQuizReadAddresses();
         quizInventoryCachePromise = (async () => {
             const lengths = await Promise.allSettled(
                 addresses.map(async (address) => ({
@@ -884,9 +902,12 @@ class Contracts_MetaMask {
                 });
 
             if (inventory.length === 0) {
-                const fallbackInventory = Array.isArray(quizInventoryCacheMemory) && quizInventoryCacheMemory.length > 0
+                const fallbackInventory = filterQuizInventoryEntries(
+                    Array.isArray(quizInventoryCacheMemory) && quizInventoryCacheMemory.length > 0
                     ? quizInventoryCacheMemory
-                    : persistedEntries;
+                    : persistedEntries,
+                    addresses
+                );
                 if (fallbackInventory.length > 0) {
                     quizInventoryCacheMemory = fallbackInventory;
                     quizInventoryCacheFetchedAt = Date.now();
@@ -1762,7 +1783,7 @@ class Contracts_MetaMask {
             const scoreCache = readScoreCache();
             const historyLength = await this.get_user_history_len(address);
             const cached = scoreCache[cacheKey];
-            const payoutEntries = getRewardPayoutEntries({ studentAddress: address })
+            const payoutEntries = getRewardPayoutEntries({ studentAddress: address, sourceAddress: quiz_address })
                 .filter((entry) => entry.confirmed !== false && String(entry.resultState || "") === "correct");
             const payoutLedgerSignature = payoutEntries
                 .map((entry) => `${buildRewardLedgerQuizKey(entry.sourceAddress, entry.quizId)}:${Number(entry.rewardTft || 0)}:${String(entry.txHash || "")}`)
@@ -3100,13 +3121,13 @@ class Contracts_MetaMask {
             const fallbackInventory = Array.isArray(quizInventoryCacheMemory) && quizInventoryCacheMemory.length > 0
                 ? quizInventoryCacheMemory
                 : getStoredQuizInventoryEntries();
-            return Array.isArray(fallbackInventory) ? fallbackInventory.length : 0;
+            return filterQuizInventoryEntries(fallbackInventory, this.getQuizReadAddresses()).length;
         } catch (error) {
             console.log(error);
             const fallbackInventory = Array.isArray(quizInventoryCacheMemory) && quizInventoryCacheMemory.length > 0
                 ? quizInventoryCacheMemory
                 : getStoredQuizInventoryEntries();
-            return Array.isArray(fallbackInventory) ? fallbackInventory.length : 0;
+            return filterQuizInventoryEntries(fallbackInventory, this.getQuizReadAddresses()).length;
         }
     }
 
@@ -3223,7 +3244,7 @@ class Contracts_MetaMask {
 
     async get_results() {
         const now = Date.now();
-        const rewardLedgerSignature = buildRewardLedgerSignature(getRewardPayoutEntries());
+        const rewardLedgerSignature = buildRewardLedgerSignature(getRewardPayoutEntries({ sourceAddress: quiz_address }));
         const combinedLedgerSignature = rewardLedgerSignature;
         if (
             Array.isArray(resultsCacheMemory)

@@ -13,7 +13,20 @@ import { legacy_quiz_addresses, quiz_address } from "../../contract/config";
 import { beginScreenLoadBenchmark } from "../../utils/performanceBenchmark";
 import "./list_quiz_top.css";
 
-const QUIZ_LIST_PAGE_CACHE_KEY = `web3_quiz_list_page_cache_v1_${normalizeQuizAddress(quiz_address)}`;
+const CURRENT_QUIZ_ADDRESS = normalizeQuizAddress(quiz_address);
+const QUIZ_LIST_PAGE_CACHE_KEY = `web3_quiz_list_page_cache_v2_${CURRENT_QUIZ_ADDRESS}`;
+
+function getQuizSourceAddress(quiz) {
+    return normalizeQuizAddress(quiz?.sourceAddress || quiz?.[12] || quiz_address);
+}
+
+function isCurrentQuizSource(quiz) {
+    return getQuizSourceAddress(quiz) === CURRENT_QUIZ_ADDRESS;
+}
+
+function filterCurrentQuizList(quizList = []) {
+    return (Array.isArray(quizList) ? quizList : []).filter(isCurrentQuizSource);
+}
 
 function readQuizListPageCache() {
     if (typeof localStorage === "undefined") return null;
@@ -21,7 +34,13 @@ function readQuizListPageCache() {
         const parsed = JSON.parse(localStorage.getItem(QUIZ_LIST_PAGE_CACHE_KEY) || "null");
         if (!parsed || typeof parsed !== "object") return null;
         if (!Array.isArray(parsed.quizList)) return null;
-        return parsed;
+        const quizList = filterCurrentQuizList(parsed.quizList);
+        if (quizList.length === 0) return null;
+        return {
+            ...parsed,
+            quizList,
+            quizSum: quizList.length,
+        };
     } catch (error) {
         return null;
     }
@@ -30,7 +49,16 @@ function readQuizListPageCache() {
 function writeQuizListPageCache(payload) {
     if (typeof localStorage === "undefined") return;
     try {
-        localStorage.setItem(QUIZ_LIST_PAGE_CACHE_KEY, JSON.stringify(payload));
+        const quizList = filterCurrentQuizList(payload?.quizList);
+        if (quizList.length === 0) {
+            localStorage.removeItem(QUIZ_LIST_PAGE_CACHE_KEY);
+            return;
+        }
+        localStorage.setItem(QUIZ_LIST_PAGE_CACHE_KEY, JSON.stringify({
+            ...payload,
+            quizList,
+            quizSum: quizList.length,
+        }));
     } catch (error) {
         console.error("Failed to persist quiz list page cache", error);
     }
@@ -134,9 +162,9 @@ function List_quiz_top(props) {
     }, [quiz_list, quiz_sum]);
 
     const syncPendingCreatedQuizzes = async () => {
-        const localPending = getPendingCreatedQuizzes().map((entry) => toPendingQuizSimple(entry)).filter(Boolean);
+        const localPending = getPendingCreatedQuizzes().map((entry) => toPendingQuizSimple(entry)).filter(Boolean).filter(isCurrentQuizSource);
         const sharedPendingMap = await getCreatedQuizzes();
-        const sharedPending = Object.values(sharedPendingMap || {}).map((entry) => toPendingQuizSimple(entry)).filter(Boolean);
+        const sharedPending = Object.values(sharedPendingMap || {}).map((entry) => toPendingQuizSimple(entry)).filter(Boolean).filter(isCurrentQuizSource);
         const mergedPending = [...localPending];
         const mergedKeys = new Set(localPending.map((quiz) => getQuizCacheKey(quiz)));
         sharedPending.forEach((quiz) => {
@@ -340,7 +368,7 @@ function List_quiz_top(props) {
     }, []);
 
     useEffect(() => {
-        pruneResolvedPendingCreatedQuizzes(quiz_list);
+        pruneResolvedPendingCreatedQuizzes(filterCurrentQuizList(quiz_list));
         const pendingKeys = new Set(pendingCreatedQuizzes.map((quiz) => getQuizCacheKey(quiz)));
         quiz_list.forEach((quiz) => {
             if (!Array.isArray(quiz)) return;
@@ -353,7 +381,7 @@ function List_quiz_top(props) {
     }, [pendingCreatedQuizzes, quiz_list]);
 
     useEffect(() => {
-        const expiredWithoutAnswer = quiz_list.filter((quiz) => {
+        const expiredWithoutAnswer = filterCurrentQuizList(quiz_list).filter((quiz) => {
             const quizKey = getQuizCacheKey(quiz);
             const deadline = Number(quiz?.[6] || 0);
             return deadline > 0 && currentEpoch > deadline && !correctAnswerMap[quizKey];
@@ -397,12 +425,15 @@ function List_quiz_top(props) {
         };
     }, [cont, correctAnswerMap, currentEpoch, quiz_list]);
 
-    const visibleQuizKeys = new Set(quiz_list.map((quiz) => getQuizCacheKey(quiz)));
+    const currentQuizList = filterCurrentQuizList(quiz_list);
+    const currentPendingCreatedQuizzes = filterCurrentQuizList(pendingCreatedQuizzes);
+    const visibleQuizKeys = new Set(currentQuizList.map((quiz) => getQuizCacheKey(quiz)));
     const mergedQuizList = [
-        ...pendingCreatedQuizzes.filter((quiz) => !visibleQuizKeys.has(getQuizCacheKey(quiz))),
-        ...quiz_list,
+        ...currentPendingCreatedQuizzes.filter((quiz) => !visibleQuizKeys.has(getQuizCacheKey(quiz))),
+        ...currentQuizList,
     ];
     const filteredQuizList = mergedQuizList
+        .filter(isCurrentQuizSource)
         .filter((quiz) => !deletedQuizMap[getQuizCacheKey(quiz)])
         .filter((quiz) => {
             const localId = Number(quiz?.[0]);
