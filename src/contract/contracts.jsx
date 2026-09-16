@@ -156,6 +156,8 @@ const AMOY_READY_CACHE_TTL_MS = 10 * 1000;
 const MAX_PAYOUT_GAS_PER_TX = 900000n;
 const MAX_PAYOUT_FEE_PER_TX_WEI = parseEther("0.05");
 const MAX_PAYOUT_RECIPIENTS_PER_TX = 15;
+const POLYGON_AMOY_CHAIN_ID = 80002;
+const POLYGON_AMOY_MIN_PRIORITY_FEE_PER_GAS = 25_000_000_000n;
 
 let studentListCacheMemory = null;
 let studentListCacheFetchedAt = 0;
@@ -1173,7 +1175,7 @@ class Contracts_MetaMask {
                     }
                 }
 
-                // Fee estimation override has been removed to rely on MetaMask's default.
+                await this.applyNetworkFeeOverrides(writeConfig);
 
                 return await walletClient.writeContract(writeConfig);
             } catch (error) {
@@ -1186,6 +1188,39 @@ class Contracts_MetaMask {
         }
 
         throw lastError || new Error("write_contract_failed");
+    }
+
+    async applyNetworkFeeOverrides(writeConfig) {
+        if (Number(amoy?.id) !== POLYGON_AMOY_CHAIN_ID) {
+            return;
+        }
+
+        try {
+            const fees = await publicClient.estimateFeesPerGas({ chain: amoy });
+            const suggestedPriorityFee = BigInt(fees?.maxPriorityFeePerGas || 0n);
+            const maxPriorityFeePerGas = suggestedPriorityFee > POLYGON_AMOY_MIN_PRIORITY_FEE_PER_GAS
+                ? suggestedPriorityFee
+                : POLYGON_AMOY_MIN_PRIORITY_FEE_PER_GAS;
+            const suggestedMaxFee = BigInt(fees?.maxFeePerGas || 0n);
+            let baseFeePerGas = 0n;
+
+            try {
+                const block = await publicClient.getBlock({ blockTag: "pending" });
+                baseFeePerGas = BigInt(block?.baseFeePerGas || 0n);
+            } catch (blockError) {
+                console.log(blockError);
+            }
+
+            const minimumMaxFee = baseFeePerGas > 0n
+                ? baseFeePerGas + maxPriorityFeePerGas
+                : maxPriorityFeePerGas;
+            writeConfig.maxPriorityFeePerGas = maxPriorityFeePerGas;
+            writeConfig.maxFeePerGas = suggestedMaxFee > minimumMaxFee
+                ? suggestedMaxFee
+                : minimumMaxFee;
+        } catch (feeError) {
+            console.log(feeError);
+        }
     }
 
     async add_watch_asset(address, symbol, decimals = 18) {
@@ -2721,8 +2756,16 @@ class Contracts_MetaMask {
         });
     }
 
-    async create_answer(id, answer, setShow, setContent, sourceAddress = "") {
+    async create_answer(id, answer, setShow, setContent, sourceAddress = "", benchmarkCallbacks = {}) {
         console.log(id, answer);
+        const emitBenchmarkEvent = (eventName, payload) => {
+            try {
+                benchmarkCallbacks?.[eventName]?.(payload);
+            } catch (callbackError) {
+                console.warn("Answer benchmark callback failed", callbackError);
+            }
+        };
+
         try {
             const provider = await this.getEthereumProviderReady();
             if (!provider) {
@@ -2741,20 +2784,23 @@ class Contracts_MetaMask {
             setShow(true);
             setContent("書き込み中...");
             let hash = await this._save_answer(account, id, answer, sourceAddress);
+            emitBenchmarkEvent("onTransactionHash", { hash, account, quizId: id, sourceAddress });
 
             if (hash) {
                 try {
                     let res = await this.waitForReceiptWithRetry(hash);
+                    emitBenchmarkEvent("onTransactionReceipt", { hash, receipt: res, account, quizId: id, sourceAddress });
                     console.log(res);
                     localStorage.setItem(`quiz_${this.normalizeQuizAddress(sourceAddress)}_${id}_answer`, answer);
                     this.invalidateQuizSimpleCache(this.resolveQuizAddress(sourceAddress), id);
-                    return res;
+                    return { ...res, hash, transactionHash: res?.transactionHash || hash };
                 } catch (receiptError) {
+                    emitBenchmarkEvent("onTransactionReceiptError", { hash, error: receiptError, account, quizId: id, sourceAddress });
                     const verified = await this.verify_answer_submission(account, id, answer, sourceAddress);
                     if (verified) {
                         localStorage.setItem(`quiz_${this.normalizeQuizAddress(sourceAddress)}_${id}_answer`, answer);
                         this.invalidateQuizSimpleCache(this.resolveQuizAddress(sourceAddress), id);
-                        return { status: "verified_after_receipt_timeout", hash };
+                        return { status: "verified_after_receipt_timeout", hash, transactionHash: hash };
                     }
                     throw receiptError;
                 }

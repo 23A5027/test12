@@ -20,12 +20,7 @@ const rpc = rpc_urls[0]; // default RPC endpoint
 
 const class_room_address = "0xaF67a72181E841960333EA309F787541e12f8799";
 const quiz_address = "0xa87a2947c6a19460a61D43f3D43Ea7e58aD7220B";
-const legacy_quiz_addresses = [
-    "0x55B3977C7B7b913eaf175A7364c8375732d22241",
-    "0xEbBD4E3276bcb847838E18DDA7585Ac8925a5eA6",
-    "0x2DfaC485A476FdFbF33411C88A126D74fbfbD0Ee",
-    "0x49576E6B1a9D81075767D61dAE3AdcB0b30B00d4",
-];
+const legacy_quiz_addresses = [];
 // Keep this list append-only so existing shared URLs never change target contracts.
 // When a new quiz.sol is deployed:
 // 1. update quiz_address to the new contract
@@ -33,14 +28,9 @@ const legacy_quiz_addresses = [
 // 3. append the new contract address to routed_quiz_addresses
 const routed_quiz_addresses = [
     "0xa87a2947c6a19460a61D43f3D43Ea7e58aD7220B",
-    "0xeb196c161EFA30939f78170694bb908E17fd1479",
-    "0x55B3977C7B7b913eaf175A7364c8375732d22241",
-    "0xEbBD4E3276bcb847838E18DDA7585Ac8925a5eA6",
-    "0x2DfaC485A476FdFbF33411C88A126D74fbfbD0Ee",
-    "0x49576E6B1a9D81075767D61dAE3AdcB0b30B00d4",
 ];
 // Backward-compatible alias for previously shared c-<id> URLs.
-const legacy_current_route_address = "0x55B3977C7B7b913eaf175A7364c8375732d22241";
+const legacy_current_route_address = quiz_address;
 const token_address = "0x3A2ADb83eAcDF03B512D683F7De186781f29c8B4";
 const ttt_token_address = "0x38c881Fb9F6172B4b283903bAcDd503f34bD414D";
 const bootstrap_teacher_addresses = [
